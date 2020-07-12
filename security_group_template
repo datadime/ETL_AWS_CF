@@ -1,0 +1,27 @@
+ElasticSearchSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !ImportValue 
+        'Fn::Sub': '${BusinessUnit}-${Environment}-app01-vpc-id'
+      GroupDescription: Enable http access via port 80
+      SecurityGroupIngress:
+      - CidrIp: 10.0.0.0/8
+        FromPort: !Ref PgSQLPort
+        IpProtocol: tcp
+        ToPort: !Ref esPort
+      - CidrIp: 0.0.0.0/0
+        FromPort: !Ref esPort
+        IpProtocol: tcp
+        ToPort: !Ref esPort   
+      - CidrIp: 0.0.0.0/0
+        FromPort: !Ref esSecurePort
+        IpProtocol: tcp
+        ToPort: !Ref esSecurePort
+PgSQLPort:
+    Description: 'Elasticsearch active port'
+    Type: String
+    Default: '5432'
+esSecurePort:
+    Description: 'Elasticsearch secure port'
+    Type: String
+    Default: '443'

@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources: 
+  ShsDnaREDPResourceRole: 
+    Type: "AWS::IAM::Role"
+    Properties:
+        AssumeRolePolicyDocument: 
+          Version: "2012-10-17"
+          Statement:
+            -
+              Effect: "Allow"
+              Principal:
+                Service: 
+                  - "datapipeline.amazonaws.com"
+              Action: 
+                - "sts:AssumeRole"
+        Path: "/"
+        Policies:
+            -
+                PolicyName: "Datapipeline_s3_full_access"
+                PolicyDocument: 
+                    Version: "2012-10-17"
+                    Statement: 
+                        - 
+                            Effect: "Allow"
+                            Action: 
+                                - "s3:*"
+                            Resource: "*"
+            -
+                    PolicyName: "Datapipeline_rds_full_access"
+                    PolicyDocument: 
+                        Version: "2012-10-17"
+                        Statement: 
+                            - 
+                                Effect: "Allow"
+                                Action: 
+                                    - "rds:*"
+                                Resource: "*"
+            -
+                    PolicyName: "Datapipeline_EC2_full_access"
+                    PolicyDocument: 
+                        Version: "2012-10-17"
+                        Statement: 
+                            - 
+                                Effect: "Allow"
+                                Action: 
+                                    - "ec2:*"
+                                Resource: "*"
+            -
+                    PolicyName: "Datapipeline_SSM_full_access"
+                    PolicyDocument: 
+                        Version: "2012-10-17"
+                        Statement: 
+                            - 
+                                Effect: "Allow"
+                                Action: 
+                                    - "ssm:*"
+                                Resource: "*"
+            -
+                    PolicyName: "Datapipeline_datapipeline_full_access"
+                    PolicyDocument: 
+                        Version: "2012-10-17"
+                        Statement: 
+                            - 
+                                Effect: "Allow"
+                                Action: 
+                                    - "datapipeline:*"
+                                Resource: "*"
+  ShsDnaDpRole: 
+    Type: "AWS::IAM::Role"
+    Properties:
+        AssumeRolePolicyDocument: 
+          Version: "2012-10-17"
+          Statement:
+            -
+              Effect: "Allow"
+              Principal:
+                Service: 
+                  - "datapipeline.amazonaws.com"
+              Action: 
+                - "sts:AssumeRole"
+        Path: "/"
+        Policies:
+            -
+                PolicyName: "Datapipeline_s3_full_access"
+                PolicyDocument: 
+                    Version: "2012-10-17"
+                    Statement: 
+                        - 
+                            Effect: "Allow"
+                            Action: 
+                                - "s3:*"
+                            Resource: "*"
+            -
+                    PolicyName: "Datapipeline_rds_full_access"
+                    PolicyDocument: 
+                        Version: "2012-10-17"
+                        Statement: 
+                            - 
+                                Effect: "Allow"
+                                Action: 
+                                    - "rds:*"
+                                Resource: "*"
+            -
+                    PolicyName: "Datapipeline_EC2_full_access"
+                    PolicyDocument: 
+                        Version: "2012-10-17"
+                        Statement: 
+                            - 
+                                Effect: "Allow"
+                                Action: 
+                                    - "ec2:*"
+                                Resource: "*"
+            -
+                    PolicyName: "Datapipeline_SSM_full_access"
+                    PolicyDocument: 
+                        Version: "2012-10-17"
+                        Statement: 
+                            - 
+                                Effect: "Allow"
+                                Action: 
+                                    - "ssm:*"
+                                Resource: "*"
+            -
+                    PolicyName: "Datapipeline_datapipeline_full_access"
+                    PolicyDocument: 
+                        Version: "2012-10-17"
+                        Statement: 
+                            - 
+                                Effect: "Allow"
+                                Action: 
+                                    - "datapipeline:*"
+                                Resource: "*"

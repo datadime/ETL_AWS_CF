@@ -1,0 +1,1132 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "SHS DnA Rules Engine ETL"
+Metadata: 
+  Name: shs-dna-dev-re-etl-datapipeline
+  'AWS::CloudFormation::Interface': 
+    ParameterGroups: 
+      # - Label:
+      #     default: Identification
+      #   Parameters:
+      #     - BusinessUnit
+      #     - ContactEmail
+      #     - BusinessService
+      #     - TechnicalService
+      #     - Environment
+      #     - Owner
+      - Label:
+            default: "Data Pipeline EC2 resource"
+        Parameters:
+        - instanceType
+        - imageId
+      - Lable:
+            default: "Database Parameters"
+        Paramerters:
+        - JdbcConnectStr
+        - username
+        - password
+        - DatabaseName
+      - Lable: 
+            default: "Rules Engine ETL scripts"
+        Paramters:      
+        - REPricingScriptURI
+        - JdbcDriverUri
+        - AuditLogsDelta
+        - REPricingScriptURI
+        - REPricingCaptureEndtime
+        - REExtractWithGroupconcat
+        - REGCCaptureEndtime
+        - PopulateGDSTranslate
+        - GDSCaptureEndtime
+        - RiRateTranslationsScriptURI
+        - InsertEndTimeNumRecRIRateTrans
+        - REJar
+Parameters:
+    instanceType:
+        Type: 'String'
+        Description: 'EC2 Instance Type'
+        Default: 'm4.xlarge'
+        AllowedValues:
+          - t2.nano
+          - t3.micro
+          - t3.small
+          - t3.medium
+          - t3.large
+          - t3.xlarge
+          - t3.2xlarge
+          - m4.large
+          - m4.xlarge
+          - m4.2xlarge
+          - m4.4xlarge
+          - c4.large
+          - c4.xlarge
+          - c4.2xlarge
+          - c4.4xlarge
+          - g2.2xlarge
+          - p2.xlarge
+          - d2.xlarge
+          - d2.2xlarge
+          - d2.4xlarge
+          - i2.xlarge
+          - i2.2xlarge
+          - i2.4xlarge
+    imageId:
+        Type: 'String'
+        Description: 'AMI ID'
+        Default: 'ami-6cd6f714' 
+        AllowedValues:
+            - ami-6cd6f714
+            - ami-a0cfeed8            
+    JdbcConnectStr:
+        Type: 'String'
+        Description: 'URL to Aurora Postgres instance'
+        Default: 'jdbc:postgresql://shs-dna-dev-us-west-2-pgsql.cluster-cngffkvychil.us-west-2.rds.amazonaws.com:5432/postgres'
+    username:
+        Type: 'String'
+        Description: 'Database funcational username'
+        Default: '*****' 
+    password:
+        Type: 'String'
+        Description: 'Password for functional user'
+        Default: '*****' 
+    DatabaseName:
+        Type: String
+        Description: 'Database name that will be used'
+        Default: 'postgres'
+    JdbcDriverUri:
+        Type: 'String'
+        Description: 'Jdbc Driver Jar Uri'
+        Default: 's3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/drivers/postgresql-9.4-1204.jdbc41.jar'
+    REPricingScriptURI:
+        Type: 'String'
+        Description: 'RE Pricing Script URI'
+        Default: 's3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/REPricing/REPricing.sql'
+    REPricingCaptureEndtime: 
+        Type: 'String'
+        Description: 'Capture End time RE Pricing Script URI'
+        Default: 's3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/REPricing/num_rec_endtime_REPricing.sql'
+    REExtractWithGroupconcat:
+        Type: 'String'
+        Description: 'RE SRC Dataset Extract Script URI'
+        Default: 's3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/RE_Extract_with_Group_Concat/RE_Extract_with_Group_concat.sql'
+    REGCCaptureEndtime:
+        Type: 'String'
+        Description: 'RE capture entime Script URI'
+        Default: 's3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/RE_Extract_with_Group_Concat/Num_rec_end_time_RESRCDataSet_Concat.sql'
+    PopulateGDSTranslate:
+        Type: 'String'
+        Description: 'GDS Column Populate Script URI'
+        Default: 's3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/GDS_Translate_Populate/GDS_translate_populate.sql'
+    GDSCaptureEndtime:
+        Type: 'String'
+        Description: 'Capture entime GDS Populate Script URI'
+        Default: 's3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/GDS_Translate_Populate/GDS_populate_endtime_NumRecords.sql'
+    RiRateTranslationsScriptURI:
+        Type: 'String'
+        Description: 'Ri Rate Translations Script URI'
+        Default: 's3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/RiRateTranslations/RiRateTranslations_v4.sql'
+    InsertEndTimeNumRecRIRateTrans:
+        Type: 'String'
+        Description: 'Insert endtime/#Records RiRateTranslations Script URI'
+        Default: 's3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/RiRateTranslations/Insert_endtime_num_records_RiRateTranslations_Audit_logs.sql'
+    AuditLogsDelta:
+        Type: 'String'
+        Description: 'Calculate time taken Script URI'
+        Default: 's3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/update_delta_Audit_logs.sql'
+    REJar:
+        Type: 'String'
+        Description: 'RE JAR URI'
+        Default: 's3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/jar_files/rulesengine-1.0.16-RELEASE.jar'
+    PipelineLogUri:
+        Type: 'String'
+        Description: 'RE JAR URI'
+        Default: 's3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/logs/etl_data_pipeline_logs/'
+Mappings:
+  regionMap:
+    ap-northeast-1:
+      bucketSubdomain: s3-ap-northeast-1
+      ami: ami-25bd2743
+      regionNumber: 08
+    ap-northeast-2:
+      bucketSubdomain: s3-ap-northeast-2
+      ami: ami-7248e81c
+      regionNumber: 09
+    ap-south-1:
+      bucketSubdomain: s3-ap-south-1
+      ami: ami-5d99ce32
+      regionNumber: '12'
+    ap-southeast-1:
+      bucketSubdomain: s3-ap-southeast-1
+      ami: ami-4198a63d
+      regionNumber: '10'
+    ap-southeast-2:
+      bucketSubdomain: s3-ap-southeast-2
+      ami: ami-b6bb47d4
+      regionNumber: '11'
+    eu-central-1:
+      bucketSubdomain: s3-eu-central-1
+      ami: ami-337be65c
+      regionNumber: '04'
+    eu-west-1:
+      bucketSubdomain: s3-eu-west-1
+      ami: ami-06178e2e823129264
+      regionNumber: '05'
+    sa-east-1:
+      bucketSubdomain: s3-sa-east-1
+      ami: ami-f9adef95
+      regionNumber: '13'
+    us-east-1:
+      bucketSubdomain: s3
+      ami: ami-4bf3d731
+      regionNumber: '00'
+    us-west-1:
+      bucketSubdomain: s3-us-west-1
+      ami: ami-65e0e305
+      regionNumber: '02'
+    us-west-2:
+      bucketSubdomain: s3-us-west-2
+      ami: ami-6cd6f714 
+      regionNumber: '03'
+  hostnameRegionMap:
+    us-east-1:
+      value: '00'
+    us-east-2:
+      value: '01'
+    us-west-1:
+      value: '02'
+    us-west-2:
+      value: '03'
+    ca-central-1:
+      value: '04'
+    eu-west-1:
+      value: '05'
+    eu-central-1:
+      value: '06'
+    eu-west-2:
+      value: '07'
+    ap-northeast-1:
+      value: 08
+    ap-northeast-2:
+      value: 09
+    ap-southeast-1:
+      value: '10'
+    ap-southeast-2:
+      value: '11'
+    ap-south-1:
+      value: '12'
+    sa-east-1:
+      value: '13'
+  hostnameEnvironment:
+    dev:
+      value: d
+    sbx:
+      value: s
+    cert:
+      value: c
+    prod:
+      value: p
+Resources:
+    DataPipelineResourceRole: 
+      Type: "AWS::IAM::Role"
+      Properties:
+          AssumeRolePolicyDocument: 
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Principal:
+                  Service: 
+                    - "datapipeline.amazonaws.com"
+                Action: 
+                  - "sts:AssumeRole"
+          Path: "/"
+          Policies:
+              -
+                  PolicyName: "DataPipelineResourceRole_policy"
+                  PolicyDocument: 
+                      Version: "2012-10-17"
+                      Statement: 
+                          - 
+                              Effect: "Allow"
+                              Action: 
+                                  - "iam:Get*"
+                                  - "iam:List*"
+                                  - "cloudwatch:*"
+                                  - "dynamodb:*"
+                                  - "ec2:Describe*"
+                                  - "elasticmapreduce:AddJobFlowSteps"
+                                  - "elasticmapreduce:Describe*"
+                                  - "elasticmapreduce:ListInstance*"
+                                  - "rds:Describe*"
+                                  - "redshift:DescribeClusters"
+                                  - "redshift:DescribeClusterSecurityGroups"
+                                  - "sdb:*"
+                                  - "sns:*"
+                                  - "sqs:*"
+                                  - "s3:*"
+                                  - "rds:*"
+                                  - "ec2:*"
+                                  - "ssm:*"
+                                  - "datapipeline:*"
+                              Resource: "*"
+    DataPipelineRole: 
+      Type: "AWS::IAM::Role"
+      Properties:
+          AssumeRolePolicyDocument: 
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Principal:
+                  Service: 
+                    - "datapipeline.amazonaws.com"
+                Action: 
+                  - "sts:AssumeRole"
+          Path: "/"
+          Policies:
+              -
+                  PolicyName: "DataPipelineRole_policy"
+                  PolicyDocument: 
+                      Version: "2012-10-17"
+                      Statement: 
+                          - 
+                              Effect: "Allow"
+                              Action: 
+                                  - "iam:Get*"
+                                  - "iam:GetRole"
+                                  - "iam:GetRolePolicy"
+                                  - "iam:List*"
+                                  - "s3:Get*"
+                                  - "s3:List*"
+                                  - "s3:Put*"
+                                  - "rds:*"
+                                  - "ec2:*"
+                                  - "ssm:*"
+                                  - "cloudwatch:*"
+                                  - "datapipeline:DescribeObjects"
+                                  - "datapipeline:EvaluateExpression"
+                                  - "dynamodb:BatchGetItem"
+                                  - "dynamodb:DescribeTable"
+                                  - "dynamodb:GetItem"
+                                  - "dynamodb:Query"
+                                  - "dynamodb:Scan"
+                                  - "dynamodb:UpdateTable"
+                                  - "ec2:AuthorizeSecurityGroupIngress"
+                                  - "ec2:CancelSpotInstanceRequests"
+                                  - "ec2:CreateSecurityGroup"
+                                  - "ec2:CreateTags"
+                                  - "ec2:DeleteTags"
+                                  - "ec2:Describe*"
+                                  - "ec2:ModifyImageAttribute"
+                                  - "ec2:ModifyInstanceAttribute"
+                                  - "ec2:RequestSpotInstances"
+                                  - "ec2:RunInstances"
+                                  - "ec2:StartInstances"
+                                  - "ec2:StopInstances"
+                                  - "ec2:TerminateInstances"
+                                  - "elasticmapreduce:*"
+                                  - "s3:List*"
+                                  - "dynamodb:DescribeTable"
+                                  - "rds:DescribeDBInstances"
+                                  - "rds:DescribeDBSecurityGroups"
+                                  - "redshift:DescribeClusters"
+                                  - "redshift:DescribeClusterSecurityGroups"
+                                  - "sns:ListTopics"
+                                  - "sns:Subscribe"
+                                  - "iam:ListRoles"
+                                  - "iam:GetRolePolicy"
+                                  - "iam:GetInstanceProfile"
+                                  - "iam:ListInstanceProfiles"
+                                  - "datapipeline:*"
+                                  - "SNS:GetTopicAttributes"
+                                  - "SNS:SetTopicAttributes"
+                                  - "SNS:AddPermission"
+                                  - "SNS:RemovePermission"
+                                  - "SNS:DeleteTopic"
+                                  - "SNS:Subscribe"
+                                  - "SNS:ListSubscriptionsByTopic"
+                                  - "SNS:Publish"
+                                  - "SNS:Receive"
+                              Resource: "*"            
+    DataPipelineResourceRoleInstanceProfile:
+      Type: 'AWS::IAM::InstanceProfile'
+      Properties:
+        Roles:
+        - !Ref "DataPipelineResourceRole"
+    SnsTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        DisplayName : Rules-Engine-Failure-Notificaiton
+        Subscription:
+          - 
+            Endpoint: "nishanth.arepalli@sabre.com" 
+            Protocol: "email"
+          - 
+            Endpoint: "bhavana.hegde@sabre.com" 
+            Protocol: "email"
+        TopicName: "RulesEngineFailureNotification"
+    RulesEngineETLDatapipeline:
+        Type: AWS::DataPipeline::Pipeline
+        Properties:       
+          Name: shs-dna-dev-re-etl-datapipeline
+          Description: "Data pipeline for SHS DnA Rules Engine ETL"
+          Activate: true
+          ParameterObjects:
+            - 
+              Id: "myInstanceType"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "Instance Type"
+                -
+                  Key: "type"
+                  StringValue: "String"
+                -
+                  Key: "default"
+                  StringValue: "m4.xlarge"                  
+              
+            - 
+              Id: "myAMIid"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "EC2 Image Id"
+                -
+                  Key: "type"
+                  StringValue: "String"
+                -
+                  Key: "default"
+                  StringValue: "ami-6cd6f714"  
+            
+            -           
+              Id: "myREPricingScriptURI"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "RE Pricing Script URI"
+                -
+                  Key: "type"
+                  StringValue: "AWS::S3::ObjectKey"
+                            
+            -           
+              Id: "myJdbcDriverUri"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "Jdbc Driver Jar Uri"
+                -
+                  Key: "type"
+                  StringValue: "AWS::S3::ObjectKey"
+
+            -           
+              Id: "myAuditLogsDelta"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "URI for Calculating time taken Script"
+                -
+                  Key: "type"
+                  StringValue: "AWS::S3::ObjectKey"
+
+            -           
+              Id: "myInsertEndTimeNumRecRIRateTrans"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "Insert endtime/#Records RiRateTranslations Script URI"
+                -
+                  Key: "type"
+                  StringValue: "AWS::S3::ObjectKey"
+            -           
+              Id: "myREGCCaptureEndtime"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "RE capture entime Script URI"
+                -
+                  Key: "type"
+                  StringValue: "AWS::S3::ObjectKey"
+              
+            -           
+              Id: "myPopulateGDSTranslate"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "GDS Column Populate Script URI"
+                -
+                  Key: "type"
+                  StringValue: "AWS::S3::ObjectKey"
+                            
+            -           
+              Id: "myJdbcConnectStr"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "Aurora PostgreSQL connection string"
+                -
+                  Key: "type"
+                  StringValue: "String"
+       
+            -           
+              Id: "myREExtractWithGroupconcat"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "RE SRC Dataset Extract Script URI"
+                -
+                  Key: "type"
+                  StringValue: "AWS::S3::ObjectKey"
+                
+            -           
+              Id: "myRiRateTranslationsScriptURI"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "Ri Rate Translations Script URI"
+                -
+                  Key: "type"
+                  StringValue: "AWS::S3::ObjectKey"
+           
+            -           
+              Id: "myREPricingCaptureEndtime"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "Capture End time RE Pricing Script URI"
+                -
+                  Key: "type"
+                  StringValue: "AWS::S3::ObjectKey"
+            -           
+              Id: "myPostgreSQLUsername"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "PostgreSQL Username"
+                -
+                  Key: "type"
+                  StringValue: "String"
+  
+            -           
+              Id: "myGDSCaptureEndtime"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "Capture entime for GDS Populate Script URI"
+                -
+                  Key: "type"
+                  StringValue: "AWS::S3::ObjectKey"
+            -           
+              Id: "mySubnetId"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "Subnet ID"
+                -
+                  Key: "type"
+                  StringValue: "String"
+            -           
+              Id: "myPostgreSQLPassword"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "PostgreSQL password"
+                -
+                  Key: "type"
+                  StringValue: "String"
+            -           
+              Id: "myExecuteREJar"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "RE JAR URI"
+                -
+                  Key: "type"
+                  StringValue: "AWS::S3::ObjectKey"
+            -           
+              Id: "mySecurityGroupIds"
+              Attributes:
+                -
+                  Key: "description"
+                  StringValue: "Security Group Ids"
+                -
+                  Key: "type"
+                  StringValue: "String"
+            # -           
+            #   Id: "myResourceRole"
+            #   Attributes:
+            #     -
+            #       Key: "description"
+            #       StringValue: "EC2 Resource Role"
+            #     -
+            #       Key: "type"
+            #       StringValue: "String"
+                 
+            # -           
+            #   Id: "myRole"
+            #   Attributes:
+            #     -
+            #       Key: "description"
+            #       StringValue: "Data Pipeline Role"
+            #     -
+            #       Key: "type"
+            #       StringValue: "String"
+
+          ParameterValues:
+            -
+              Id: "myExecuteREJar"
+              StringValue: !Ref REJar 
+              # StringValue: "s3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/bash_scripts/exe_re_release.bash"
+            -
+              Id: "myPopulateGDSTranslate"
+              StringValue: !Ref PopulateGDSTranslate
+              # StringValue: "s3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/GDS_Translate_Populate/GDS_translate_populate.sql"
+            -
+              Id: "myREPricingCaptureEndtime"
+              StringValue: !Ref REPricingCaptureEndtime
+              #StringValue: "s3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/REPricing/num_rec_endtime_REPricing.sql"
+            -
+              Id: "myREGCCaptureEndtime"
+              StringValue: !Ref REGCCaptureEndtime
+              # StringValue: "s3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/RE_Extract_with_Group_Concat/Num_rec_end_time_RESRCDataSet_Concat.sql"
+            -
+              Id: "myAuditLogsDelta"
+              StringValue: !Ref AuditLogsDelta
+              # StringValue: "s3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/update_delta_Audit_logs.sql"
+            -
+              Id: "myJdbcDriverUri"
+              StringValue: !Ref JdbcDriverUri
+              # StringValue: "s3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/drivers/postgresql-9.4-1204.jdbc41.jar"
+            -
+              Id: "myGDSCaptureEndtime"
+              StringValue: !Ref GDSCaptureEndtime
+              # StringValue: "s3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/GDS_Translate_Populate/GDS_populate_endtime_NumRecords.sql"
+            -
+              Id: "myREExtractWithGroupconcat"
+              StringValue: !Ref REExtractWithGroupconcat
+              # StringValue: "s3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/RE_Extract_with_Group_Concat/RE_Extract_with_Group_concat.sql"
+            -
+              Id: "myInstanceType"
+              StringValue:  !Ref instanceType
+              # StringValue: "m4.xlarge"
+            -
+              Id: "myJdbcConnectStr"
+              StringValue: !Ref JdbcConnectStr
+              # StringValue: "jdbc:postgresql://shs-dna-dev-us-west-2-pgsql.cluster-cngffkvychil.us-west-2.rds.amazonaws.com:5432/postgres"
+            -
+              Id: "myRiRateTranslationsScriptURI"
+              StringValue: !Ref RiRateTranslationsScriptURI
+              # StringValue: "s3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/RiRateTranslations/RiRateTranslations_v4.sql"
+            -
+              Id: "myInsertEndTimeNumRecRIRateTrans"
+              StringValue: !Ref InsertEndTimeNumRecRIRateTrans
+              # StringValue: "${InsertEndTimeNumRecRIRateTrans}"
+              # StringValue: "s3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/RiRateTranslations/Insert_endtime_num_records_RiRateTranslations_Audit_logs.sql"
+            -
+              Id: "myPostgreSQLUsername"
+              StringValue: !Ref username
+              #StringValue: "*****"
+            -
+              Id: "mySubnetId"
+              StringValue: "subnet-7bb86c02"
+            -
+              Id: "myAMIid"
+              StringValue: !Ref imageId 
+              # StringValue: "ami-6cd6f714"
+            -
+              Id: "myPostgreSQLPassword"
+              StringValue: !Ref password
+              #StringValue: "******"
+            - 
+              Id: "myDatabaseName"
+              StringValue: !Ref DatabaseName
+            -
+              Id: "myREPricingScriptURI"
+              StringValue: !Ref REPricingScriptURI 
+              # StringValue: "s3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/scripts/sql_scripts_with_schema_change/REPricing/REPricing.sq"
+            -
+              Id: "mySecurityGroupIds"
+              StringValue: "sg-033f2db43cd86d569"
+            -
+              Id: "myPipelineLogUri"
+              StringValue: !Ref PipelineLogUri
+              #StringValue: "s3://s3-shs-dna-dev-us-west-2-par/shs_rules_engine/logs/etl_data_pipeline_logs/"
+            # -
+            #   Id: "myResourceRole"
+            #   StringValue: "DataPipelineResourceRole"
+            # -
+            #   Id: "myRole"
+            #   StringValue: "DataPipelineRole"
+
+          PipelineObjects:
+            - 
+             Id: "DatabaseId_56Wvy"
+             Name: "Aurora PostgreSQL"
+             Fields:
+                - 
+                  Key: "connectionString"
+                  StringValue: "#{myJdbcConnectStr}"
+                - 
+                  Key: "username"
+                  StringValue: "#{myPostgreSQLUsername}"
+                - 
+                  Key: "*password"
+                  StringValue: "#{myPostgreSQLPassword}"
+                - 
+                  Key: "jdbcDriverJarUri"
+                  StringValue: "#{myJdbcDriverUri}"
+                - 
+                  Key: "jdbcProperties"
+                  StringValue: '"allowMultiQueries=true"'
+                - 
+                  Key: "type"
+                  StringValue: "JdbcDatabase"
+                - 
+                  Key: "jdbcDriverClass"
+                  StringValue: "org.postgresql.Driver"
+            - 
+             Id: "ResourceId_U2nuS"
+             Name: "EC2 Instance"
+             Fields:
+                - 
+                  Key: "type"
+                  StringValue: "Ec2Resource"
+                - 
+                  Key: "imageId"
+                  StringValue: "#{myAMIid}"  
+                - 
+                  Key: "instanceType"
+                  StringValue: "#{myInstanceType}"  
+                - 
+                  Key: "subnetId"
+                  StringValue: "#{mySubnetId}"  
+                - 
+                  Key: "securityGroupIds"
+                  StringValue: "#{mySecurityGroupIds}"
+                - 
+                  Key: "resourceRole"
+                  StringValue: !Ref "DataPipelineResourceRoleInstanceProfile"
+                - 
+                  Key: "role"
+                  StringValue: !Ref "DataPipelineRole"
+                - 
+                  Key: "terminateAfter"
+                  StringValue: "3 Days"
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule"
+            - 
+             Id: "Default"
+             Name: "Default"
+             Fields:
+                - 
+                  Key: "failureAndRerunMode"
+                  StringValue: "CASCADE"
+                - 
+                  Key: "type"
+                  StringValue: "Default"
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule" 
+                - 
+                  Key: "scheduleType"
+                  StringValue: "cron" 
+                - 
+                  Key: "resourceRole"
+                  StringValue: !Ref "DataPipelineResourceRole"
+                - 
+                  Key: "role"
+                  StringValue: !Ref "DataPipelineRole"
+                - 
+                  Key: "pipelineLogUri"
+                  StringValue: "#{myPipelineLogUri}"
+            - 
+             Id: "DefaultSchedule"
+             Name: "Every 1 day"
+             Fields:
+                - 
+                  Key: "type"
+                  StringValue: "Schedule"
+                - 
+                  Key: "period"
+                  StringValue: "1 days"
+                - 
+                  Key: "startDateTime"
+                  StringValue: "2018-11-19T03:00:00"
+            - 
+             Id: "SqlActivityId_8dI4M"
+             Name: "RI_rate_translations"
+             Fields:                
+                - 
+                  Key: "type"
+                  StringValue: "SqlActivity"
+                - 
+                  Key: "runsOn"
+                  RefValue: "ResourceId_U2nuS"
+                - 
+                  Key: "database"
+                  RefValue: "DatabaseId_56Wvy"
+                - 
+                  Key: "scriptUri"
+                  StringValue: "#{myRiRateTranslationsScriptURI}"
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule"
+                -
+                  Key: "onFail"
+                  RefValue: "Failure_01"
+            - 
+              Id: "Failure_01"
+              Name: "FailureNoticeQuery01"
+              Fields:
+                - 
+                  Key: type
+                  StringValue: "SnsAlarm"
+                - 
+                  Key: topicArn
+                  StringValue: !Ref SnsTopic
+                - 
+                  Key: subject
+                  StringValue: "RI_Rate_translations Query Failed"
+                - 
+                  Key: message
+                  StringValue: "RI_Rate_translations Query Failed"
+            
+            - 
+             Id: "SqlActivityId_0SfDm"
+             Name: "RI_Rate_Translations_Capture_Endtime"
+             Fields:                
+                - 
+                  Key: "type"
+                  StringValue: "SqlActivity"
+                - 
+                  Key: "runsOn"
+                  RefValue: "ResourceId_U2nuS"
+                - 
+                  Key: "database"
+                  RefValue: "DatabaseId_56Wvy"
+                - 
+                  Key: "dependsOn"
+                  RefValue: "SqlActivityId_8dI4M"
+                - 
+                  Key: "scriptUri"
+                  StringValue: "#{myInsertEndTimeNumRecRIRateTrans}"  
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule" 
+            - 
+             Id: "SqlActivityId_RGcvI"
+             Name: "RI_rate_trans_delta"
+             Fields:                
+                - 
+                  Key: "type"
+                  StringValue: "SqlActivity"
+                - 
+                  Key: "runsOn"
+                  RefValue: "ResourceId_U2nuS"
+                - 
+                  Key: "database"
+                  RefValue: "DatabaseId_56Wvy"
+                - 
+                  Key: "dependsOn"
+                  RefValue: "SqlActivityId_0SfDm"
+                - 
+                  Key: "scriptUri"
+                  StringValue: "#{myAuditLogsDelta}"
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule"
+            - 
+             Id: "SqlActivityId_3yeUQ"
+             Name: "RE_Extract_with_GC"
+             Fields:                
+                - 
+                  Key: "type"
+                  StringValue: "SqlActivity"
+                - 
+                  Key: "runsOn"
+                  RefValue: "ResourceId_U2nuS"
+                - 
+                  Key: "database"
+                  RefValue: "DatabaseId_56Wvy"
+                - 
+                  Key: "dependsOn"
+                  RefValue: "SqlActivityId_8dI4M"
+                - 
+                  Key: "scriptUri"
+                  StringValue: "#{myREExtractWithGroupconcat}"
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule"
+                -
+                  Key: "onFail"
+                  RefValue: "Failure_02"
+            - 
+              Id: "Failure_02"
+              Name: "FailureNoticeQuery02"
+              Fields:
+                - 
+                  Key: type
+                  StringValue: "SnsAlarm"
+                - 
+                  Key: topicArn
+                  StringValue: !Ref SnsTopic
+                - 
+                  Key: subject
+                  StringValue: "RE Extract with group concat Query Failed"
+                - 
+                  Key: message
+                  StringValue: "Rules Engine Extract with group concat failed"
+            
+            - 
+             Id: "SqlActivityId_erkhG"
+             Name: "RE_GC_Capture_endtime"
+             Fields:                
+                - 
+                  Key: "type"
+                  StringValue: "SqlActivity"
+                - 
+                  Key: "runsOn"
+                  RefValue: "ResourceId_U2nuS"
+                - 
+                  Key: "database"
+                  RefValue: "DatabaseId_56Wvy"
+                - 
+                  Key: "dependsOn"
+                  RefValue: "SqlActivityId_3yeUQ"
+                - 
+                  Key: "scriptUri"
+                  StringValue: "#{myREGCCaptureEndtime}"
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule"
+            - 
+             Id: "SqlActivityId_VvwxG"
+             Name: "RE_GC_delta"
+             Fields:                
+                - 
+                  Key: "type"
+                  StringValue: "SqlActivity"
+                - 
+                  Key: "runsOn"
+                  RefValue: "ResourceId_U2nuS"
+                - 
+                  Key: "database"
+                  RefValue: "DatabaseId_56Wvy"
+                - 
+                  Key: "dependsOn"
+                  RefValue: "SqlActivityId_erkhG"
+                - 
+                  Key: "scriptUri"
+                  StringValue: "#{myAuditLogsDelta}"
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule"
+            - 
+             Id: "SqlActivityId_MkVKP"
+             Name: "GDS_column_populate"
+             Fields:                
+                - 
+                  Key: "type"
+                  StringValue: "SqlActivity"
+                - 
+                  Key: "runsOn"
+                  RefValue: "ResourceId_U2nuS"
+                - 
+                  Key: "database"
+                  RefValue: "DatabaseId_56Wvy"
+                - 
+                  Key: "dependsOn"
+                  RefValue: "SqlActivityId_3yeUQ"
+                - 
+                  Key: "scriptUri"
+                  StringValue: "#{myPopulateGDSTranslate}"
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule"
+                -
+                  Key: "onFail"
+                  RefValue: "Failure_03"
+            - 
+              Id: "Failure_03"
+              Name: "FailureNoticeQuery03"
+              Fields:
+                - 
+                  Key: type
+                  StringValue: "SnsAlarm"
+                - 
+                  Key: topicArn
+                  StringValue: !Ref SnsTopic
+                - 
+                  Key: subject
+                  StringValue: "Populate GDS Translate column  Query Failed"
+                - 
+                  Key: message
+                  StringValue: "Populate GDS Translate column  Query Failed"
+             
+            - 
+             Id: "SqlActivityId_WkRML"
+             Name: "GDS_Capture_Endtime"
+             Fields:                
+                - 
+                  Key: "type"
+                  StringValue: "SqlActivity"
+                - 
+                  Key: "runsOn"
+                  RefValue: "ResourceId_U2nuS"
+                - 
+                  Key: "database"
+                  RefValue: "DatabaseId_56Wvy"
+                - 
+                  Key: "dependsOn"
+                  RefValue: "SqlActivityId_MkVKP"
+                - 
+                  Key: "scriptUri"
+                  StringValue: "#{myGDSCaptureEndtime}" 
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule"
+            - 
+             Id: "SqlActivityId_xcqy4"
+             Name: "GDS_delta"
+             Fields:                
+                - 
+                  Key: "type"
+                  StringValue: "SqlActivity"
+                - 
+                  Key: "runsOn"
+                  RefValue: "ResourceId_U2nuS"
+                - 
+                  Key: "database"
+                  RefValue: "DatabaseId_56Wvy"
+                - 
+                  Key: "dependsOn"
+                  RefValue: "SqlActivityId_WkRML"
+                - 
+                  Key: "scriptUri"
+                  StringValue: "#{myAuditLogsDelta}" 
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule"
+            - 
+             Id: "SqlActivityId_jDR7J"
+             Name: "REPricing"
+             Fields:                
+                - 
+                  Key: "type"
+                  StringValue: "SqlActivity"
+                - 
+                  Key: "runsOn"
+                  RefValue: "ResourceId_U2nuS"
+                - 
+                  Key: "database"
+                  RefValue: "DatabaseId_56Wvy"
+                - 
+                  Key: "dependsOn"
+                  RefValue: "SqlActivityId_MkVKP"
+                - 
+                  Key: "scriptUri"
+                  StringValue: "#{myREPricingScriptURI}"
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule"
+                -
+                  Key: "onFail"
+                  RefValue: "Failure_04"
+            - 
+              Id: "Failure_04"
+              Name: "FailureNoticeQuery04"
+              Fields:
+                - 
+                  Key: type
+                  StringValue: "SnsAlarm"
+                - 
+                  Key: topicArn
+                  StringValue: !Ref SnsTopic
+                - 
+                  Key: subject
+                  StringValue: "RE Pricing Query Failed"
+                - 
+                  Key: message
+                  StringValue: "Rules Engine Pricing query failed"
+          
+            - 
+             Id: "SqlActivityId_mRrhZ"
+             Name: "RE_pricing_capture_endtime"
+             Fields:                
+                - 
+                  Key: "type"
+                  StringValue: "SqlActivity"
+                - 
+                  Key: "runsOn"
+                  RefValue: "ResourceId_U2nuS"
+                - 
+                  Key: "database"
+                  RefValue: "DatabaseId_56Wvy"
+                - 
+                  Key: "dependsOn"
+                  RefValue: "SqlActivityId_jDR7J"
+                - 
+                  Key: "scriptUri"
+                  StringValue: "#{myREPricingCaptureEndtime}"  
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule"
+            - 
+             Id: "SqlActivityId_8jkSF"
+             Name: "RE Pricing Delta"
+             Fields:                
+                - 
+                  Key: "type"
+                  StringValue: "SqlActivity"
+                - 
+                  Key: "runsOn"
+                  RefValue: "ResourceId_U2nuS"
+                - 
+                  Key: "database"
+                  RefValue: "DatabaseId_56Wvy"
+                - 
+                  Key: "dependsOn"
+                  RefValue: "SqlActivityId_mRrhZ"
+                - 
+                  Key: "scriptUri"
+                  StringValue: "#{myAuditLogsDelta}"  
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule"
+            - 
+             Id: "ShellCommandActivityId_Sn3Qu"
+             Name: "Execute_RE_Jar"
+             Fields:                
+                - 
+                  Key: "type"
+                  StringValue: "ShellCommandActivity"
+                - 
+                  Key: "runsOn"
+                  RefValue: "ResourceId_U2nuS"
+                - 
+                  Key: "dependsOn"
+                  RefValue: "SqlActivityId_jDR7J"
+                - 
+                  Key: "scriptUri"
+                  StringValue: "#{myExecuteREJar}"
+                - 
+                  Key: "schedule"
+                  RefValue: "DefaultSchedule"
+                -
+                  Key: "onFail"
+                  RefValue: "Failure_05"
+            - 
+              Id: "Failure_05"
+              Name: "FailureNoticeQuery05"
+              Fields:
+                - 
+                  Key: type
+                  StringValue: "SnsAlarm"
+                - 
+                  Key: topicArn
+                  StringValue: !Ref SnsTopic
+                - 
+                  Key: subject
+                  StringValue: "RE_Jar_Execution_failed"
+                - 
+                  Key: message
+                  StringValue: "Rules Engine JAR execution failed"
